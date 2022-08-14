@@ -138,3 +138,86 @@ ALTER TRIGGER 트리거 이름 ENABLE | DISABLE;
 
 #### 트리거 삭제
 ```DROP TRIGGER 트리거 이름;```
+
+
+#### 잊기 전에 한번더
+
+```sql
+-- Q1
+-- 1)
+CREATE OR REPLACE PROCEDURE pro_dept_in
+(
+   inout_deptno IN OUT DEPT.DEPTNO%TYPE,
+   out_dname OUT DEPT.DNAME%TYPE,
+   out_loc OUT DEPT.LOC%TYPE
+)
+IS
+BEGIN
+   SELECT DEPTNO, DNAME, LOC INTO inout_deptno, out_dname, out_loc
+     FROM DEPT
+    WHERE DEPTNO = inout_deptno;
+END pro_dept_in;
+/
+
+-- 2)
+DECLARE
+   v_deptno DEPT.DEPTNO%TYPE;
+   v_dname DEPT.DNAME%TYPE;
+   v_loc DEPT.LOC%TYPE;
+BEGIN
+   v_deptno := 10;
+   pro_dept_in(v_deptno, v_dname, v_loc);
+   DBMS_OUTPUT.PUT_LINE('부서번호 : ' || v_deptno);
+   DBMS_OUTPUT.PUT_LINE('부서명 : ' || v_dname);
+   DBMS_OUTPUT.PUT_LINE('지역 : ' || v_loc);
+END;
+/
+
+-- Q2
+
+CREATE OR REPLACE FUNCTION func_date_kor(
+   in_date IN DATE
+)
+RETURN VARCHAR2
+IS   
+BEGIN
+   RETURN (TO_CHAR(in_date, 'YYYY"년"MM"월"DD"일"'));
+END func_date_kor;
+/
+
+
+-- Q3
+CREATE TABLE DEPT_TRG
+    AS SELECT * FROM DEPT;
+
+CREATE TABLE DEPT_TRG_LOG(
+   TABLENAME   VARCHAR2(10),
+   DML_TYPE    VARCHAR2(10),
+   DEPTNO      NUMBER(2),    
+   USER_NAME   VARCHAR2(30), 
+   CHANGE_DATE DATE          
+);
+
+CREATE OR REPLACE TRIGGER trg_dept_log
+AFTER
+INSERT OR UPDATE OR DELETE ON DEPT_TRG
+FOR EACH ROW
+BEGIN
+   IF INSERTING THEN
+     INSERT INTO DEPT_TRG_LOG
+     VALUES ('DEPT_TRG', 'INSERT', :new.deptno,
+             SYS_CONTEXT('USERENV', 'SESSION_USER'), sysdate);
+
+   ELSIF UPDATING THEN
+     INSERT INTO DEPT_TRG_LOG
+     VALUES ('DEPT_TRG', 'UPDATE', :old.deptno,
+             SYS_CONTEXT('USERENV', 'SESSION_USER'), sysdate);
+
+   ELSIF DELETING THEN
+     INSERT INTO DEPT_TRG_LOG
+     VALUES ('DEPT_TRG', 'DELETE', :old.deptno,
+             SYS_CONTEXT('USERENV', 'SESSION_USER'), sysdate);
+   END IF;
+END;
+/
+```
