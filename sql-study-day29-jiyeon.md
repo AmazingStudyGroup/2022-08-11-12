@@ -82,6 +82,44 @@ END;
 
 #### DML 트리거의 제작 및 사용(AFTER)
 
+```sql
+-- EMP_TRG_LOG 테이블 생성하기
+CREATE TABLE EMP_TRG_LOG(
+  TABLENAME VARCHAR2(10), -- DML이 수행된 테이블 이름
+  DML_TYPE VARCHAR2(10),  -- DML 명령어의 종류
+  EMPNO NUMBER(4),        -- DML 대상이 된 사원 번호
+  USER_NAME VARCHAR2(30), -- DML을 수행한 USER 이름
+  CHANGE_DATE DATE        -- DML이 수행된 날짜
+);
+
+-- DML 실행 후 수행할 트리거 생성하기
+CREATE OR REPLACE TRIGGER trg_emp_log
+AFTER
+INSER OR UPDATE OR DELETE ON EMP_TRG
+FOR EACH ROW
+
+BEGIN
+
+  IF INSERTING THEN
+    INSERT INTO emp_trg_log
+    VALUES ('EMP_TRG', 'INSERT', :new.empno,
+            SYS_CONTEXT('USERENV', 'SESSION_USER'), sysdate); -- new.empno는 새로 추가된 empno값을 의미한다. 
+            
+  ELSIF UPDATING THEN
+      INSERT INTO emp_trg_log
+      VALUES ('EMP_TRG', 'UPDATE', :old.empno,
+              SYS_CONTEXT('USERENV', 'SESSION_USER'), sysdate);
+  
+  ELSIF DELETING THEN
+    INSERT INTO emp_trg_log
+    VALUES ('EMP_TRG', 'DELETE', :old.empno,
+            SYS_CONTEXT('USERENV', 'SESSION_USER'), sysdate);
+              
+  END IF;
+END;
+/
+```
+
 
 #### 트리거 관리
 ##### 트리거 정보조회
@@ -91,7 +129,6 @@ END;
 SELECT TRIGGER_NAME, TRIGGER_TYPE, TRIGGERING_EVENT, TABLE_NAME, STATUS
   FROM USER_TRIGGERS;
 ```
-
 
 #### 트리거 변경
 ```sql
